@@ -8,11 +8,19 @@ import (
 )
 
 func (b *Broker) BookVM(offerIndex, seconds int) error {
-	_, err := b.session.BookVM(big.NewInt(int64(offerIndex)), big.NewInt(int64(seconds)))
-	return err
+	tx, err := b.session.BookVM(big.NewInt(int64(offerIndex)), big.NewInt(int64(seconds)))
+	if err != nil {
+		return err
+	}
+
+	return b.waitForTx(tx.Hash())
 }
 
 func (b *Broker) GetUsersBookings() ([]protocol.VMBooking, error) {
+	if err := b.setDecimals(); err != nil {
+		return nil, err
+	}
+
 	bookings, err := b.session.FindBookingsByUser(b.transactOpts.From)
 	if err != nil {
 		return nil, err
@@ -21,7 +29,7 @@ func (b *Broker) GetUsersBookings() ([]protocol.VMBooking, error) {
 	for _, booking := range bookings {
 		result = append(result, protocol.VMBooking{
 			VmTypeId:   int(booking.VmTypeId.Int64()),
-			PPS:        int(booking.PricePerSecond.Int64()),
+			PPS:        b.amountToCoins(booking.PricePerSecond),
 			Miner:      &booking.Miner,
 			Index:      int(booking.Index.Int64()),
 			User:       &booking.User,
@@ -32,6 +40,10 @@ func (b *Broker) GetUsersBookings() ([]protocol.VMBooking, error) {
 }
 
 func (b *Broker) GetBooking(index int) (*protocol.VMBooking, error) {
+	if err := b.setDecimals(); err != nil {
+		return nil, err
+	}
+
 	booking, err := b.session.GetBooking(uint64(index))
 	if err != nil {
 		return nil, err
@@ -43,7 +55,7 @@ func (b *Broker) GetBooking(index int) (*protocol.VMBooking, error) {
 
 	return &protocol.VMBooking{
 		VmTypeId:   int(booking.VmTypeId.Int64()),
-		PPS:        int(booking.PricePerSecond.Int64()),
+		PPS:        b.amountToCoins(booking.PricePerSecond),
 		Miner:      &booking.Miner,
 		Index:      int(booking.Index.Int64()),
 		User:       &booking.User,
@@ -60,6 +72,10 @@ func (b *Broker) GetTime() (int, error) {
 }
 
 func (b *Broker) GetMinersBookings() ([]protocol.VMBooking, error) {
+	if err := b.setDecimals(); err != nil {
+		return nil, err
+	}
+
 	bookings, err := b.session.FindBookingsByMiner(b.transactOpts.From)
 	if err != nil {
 		return nil, fmt.Errorf("error executing FindBookingsByMiner: %v", err)
@@ -69,7 +85,7 @@ func (b *Broker) GetMinersBookings() ([]protocol.VMBooking, error) {
 
 		result = append(result, protocol.VMBooking{
 			VmTypeId:   int(booking.VmTypeId.Int64()),
-			PPS:        int(booking.PricePerSecond.Int64()),
+			PPS:        b.amountToCoins(booking.PricePerSecond),
 			Miner:      &booking.Miner,
 			Index:      int(booking.Index.Int64()),
 			User:       &booking.User,
