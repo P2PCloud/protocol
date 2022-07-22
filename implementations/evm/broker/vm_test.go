@@ -1,6 +1,7 @@
 package broker_test
 
 import (
+	"github.com/p2pcloud/protocol/implementations/evm"
 	"testing"
 
 	"github.com/p2pcloud/protocol"
@@ -8,20 +9,26 @@ import (
 )
 
 func TestBookingNotFound(t *testing.T) {
-	testInstances, simChain := getTestInstances(t, 2)
-	defer simChain.Close()
+	blockchain := evm.NewWrappedSimulatedBlockchainEnv(t)
 
-	minerContr := testInstances[0]
-	userContr := testInstances[1]
+	communityPk, err := blockchain.GetNextPrivateKey()
+	require.NoError(t, err)
+
+	testInstances, err := evm.InitializeTestInstances(
+		2, 6, nil, blockchain.Origin.Backend, blockchain, communityPk,
+	)
+	check(t, err)
+
+	minerContr := testInstances.Contracts[0]
+	userContr := testInstances.Contracts[1]
 
 	//test add offer
-	err := minerContr.AddOffer(protocol.Offer{
+	err = minerContr.AddOffer(protocol.Offer{
 		VmTypeId:      3,
 		PPS:           1,
 		Availablility: 1,
 	}, "https://hello.world")
 	require.NoError(t, err)
-	simChain.Commit()
 
 	offers, err := userContr.GetAvailableOffers(3)
 	require.NoError(t, err)
@@ -32,7 +39,6 @@ func TestBookingNotFound(t *testing.T) {
 	//test book
 	err = userContr.BookVM(offers[0].Index, 1000)
 	require.NoError(t, err)
-	simChain.Commit()
 
 	_, err = userContr.GetBooking(99999)
 	if err == nil {
@@ -41,20 +47,26 @@ func TestBookingNotFound(t *testing.T) {
 }
 
 func TestGetBooking(t *testing.T) {
-	testInstances, simChain := getTestInstances(t, 2)
-	defer simChain.Close()
+	blockchain := evm.NewWrappedSimulatedBlockchainEnv(t)
 
-	minerContr := testInstances[0]
-	userContr := testInstances[1]
+	communityPk, err := blockchain.GetNextPrivateKey()
+	require.NoError(t, err)
+
+	testInstances, err := evm.InitializeTestInstances(
+		2, 6, nil, blockchain.Origin.Backend, blockchain, communityPk,
+	)
+	check(t, err)
+
+	minerContr := testInstances.Contracts[0]
+	userContr := testInstances.Contracts[1]
 
 	//test add offer
-	err := minerContr.AddOffer(protocol.Offer{
+	err = minerContr.AddOffer(protocol.Offer{
 		VmTypeId:      3,
 		PPS:           1,
 		Availablility: 1,
 	}, "https://hello.world")
 	require.NoError(t, err)
-	simChain.Commit()
 
 	offers, err := userContr.GetAvailableOffers(3)
 	require.NoError(t, err)
@@ -65,7 +77,6 @@ func TestGetBooking(t *testing.T) {
 	//test book
 	err = userContr.BookVM(offers[0].Index, 1000)
 	require.NoError(t, err)
-	simChain.Commit()
 
 	booking, err := userContr.GetBooking(0)
 	require.NoError(t, err)
@@ -75,20 +86,26 @@ func TestGetBooking(t *testing.T) {
 }
 
 func TestBook(t *testing.T) {
-	testInstances, simChain := getTestInstances(t, 2)
-	defer simChain.Close()
+	blockchain := evm.NewWrappedSimulatedBlockchainEnv(t)
 
-	minerContr := testInstances[0]
-	userContr := testInstances[1]
+	communityPk, err := blockchain.GetNextPrivateKey()
+	require.NoError(t, err)
+
+	testInstances, err := evm.InitializeTestInstances(
+		2, 6, nil, blockchain.Origin.Backend, blockchain, communityPk,
+	)
+	check(t, err)
+
+	minerContr := testInstances.Contracts[0]
+	userContr := testInstances.Contracts[1]
 
 	//test add offer
-	err := minerContr.AddOffer(protocol.Offer{
+	err = minerContr.AddOffer(protocol.Offer{
 		VmTypeId:      3,
 		PPS:           1,
 		Availablility: 1,
 	}, "https://hello.world")
 	require.NoError(t, err)
-	simChain.Commit()
 
 	offers, err := userContr.GetAvailableOffers(3)
 	require.NoError(t, err)
@@ -99,7 +116,6 @@ func TestBook(t *testing.T) {
 	//test book
 	err = userContr.BookVM(offers[0].Index, 17777)
 	require.NoError(t, err)
-	simChain.Commit()
 
 	bookings, err := userContr.GetUsersBookings()
 	require.NoError(t, err)
